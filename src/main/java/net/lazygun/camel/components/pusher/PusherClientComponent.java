@@ -2,14 +2,15 @@ package net.lazygun.camel.components.pusher;
 
 import java.util.Map;
 
-import com.pusher.client.channel.Channel;
 import org.apache.camel.Endpoint;
 import org.apache.camel.impl.DefaultComponent;
 
 /**
- * Represents the component that manages {@link PusherEndpoint}.
+ * Represents the component that manages {@link PusherClientEndpoint}.
  */
-public class PusherComponent extends DefaultComponent {
+public class PusherClientComponent extends DefaultComponent {
+
+    public static final String SCHEME = "pusher-client";
 
     public static final String APP_KEY = "pusher.appKey";
     public static final String CHANNEL = "pusher.channel";
@@ -21,10 +22,10 @@ public class PusherComponent extends DefaultComponent {
     public static final String MEMBER_REMOVED_EVENT = "pusher:member_removed";
 
     protected Endpoint createEndpoint(String uri, String remaining, Map<String, Object> parameters) throws Exception {
-        PusherEndpoint endpoint = new PusherEndpoint(uri, this);
+        PusherClientEndpoint endpoint = new PusherClientEndpoint(uri, this);
         String[] path = remaining.split("/");
         if (path.length != 2) {
-            throw new IllegalArgumentException("Pusher uri path must contain app key and channel name: pusher://<app_key>/<channel_name>");
+            throw new IllegalArgumentException("Pusher uri path must contain app key and channel name: " + SCHEME + "://<app_key>/<channel_name>");
         }
         endpoint.setAppKey(path[0]);
         endpoint.setChannel(path[1]);

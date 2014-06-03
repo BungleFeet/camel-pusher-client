@@ -11,16 +11,16 @@ import org.apache.camel.impl.DefaultConsumer;
 
 import java.util.Set;
 
-import static net.lazygun.camel.components.pusher.PusherComponent.*;
+import static net.lazygun.camel.components.pusher.PusherClientComponent.*;
 
 /**
  * The Pusher consumer.
  */
-public class PusherConsumer extends DefaultConsumer {
+public class PusherClientConsumer extends DefaultConsumer {
 
     private final String appKey;
 
-    public PusherConsumer(final PusherEndpoint endpoint, Processor processor) {
+    public PusherClientConsumer(final PusherClientEndpoint endpoint, Processor processor) {
         super(endpoint, processor);
         this.appKey = endpoint.getAppKey();
         final String[] events = endpoint.getEvents();

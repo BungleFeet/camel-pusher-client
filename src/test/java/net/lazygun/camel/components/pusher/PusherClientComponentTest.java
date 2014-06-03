@@ -5,7 +5,7 @@ import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Test;
 
-public class PusherComponentTest extends CamelTestSupport {
+public class PusherClientComponentTest extends CamelTestSupport {
 
     public static final String PUSHER_TEST_APP = "22364f2f790269bec0a0"; // see http://test.pusher.com
     public static final String PUSHER_TEST_CHANNEL = "channel";
@@ -22,7 +22,7 @@ public class PusherComponentTest extends CamelTestSupport {
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() {
-                from("pusher://" + PUSHER_TEST_APP + "/" + PUSHER_TEST_CHANNEL)
+                from(PusherClientComponent.SCHEME + "://" + PUSHER_TEST_APP + "/" + PUSHER_TEST_CHANNEL)
                   .to("mock:result");
             }
         };

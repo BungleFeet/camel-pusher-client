@@ -6,22 +6,22 @@ import org.apache.camel.Producer;
 import org.apache.camel.impl.DefaultEndpoint;
 
 /**
- * Represents a Pusher endpoint.
+ * Represents a Pusher client endpoint.
  */
-public class PusherEndpoint extends DefaultEndpoint {
+public class PusherClientEndpoint extends DefaultEndpoint {
 
     private String appKey = "";
     private String channel = "";
     private String[] events = new String[]{};
 
-    public PusherEndpoint() {
+    public PusherClientEndpoint() {
     }
 
-    public PusherEndpoint(String uri, PusherComponent component) {
+    public PusherClientEndpoint(String uri, PusherClientComponent component) {
         super(uri, component);
     }
 
-    public PusherEndpoint(String endpointUri) {
+    public PusherClientEndpoint(String endpointUri) {
         super(endpointUri);
     }
 
@@ -30,7 +30,7 @@ public class PusherEndpoint extends DefaultEndpoint {
     }
 
     public Consumer createConsumer(Processor processor) throws Exception {
-        return new PusherConsumer(this, processor);
+        return new PusherClientConsumer(this, processor);
     }
 
     public boolean isSingleton() {

@@ -6,13 +6,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The Pusher producer.
+ * The Pusher client producer.
  */
-public class PusherProducer extends DefaultProducer {
-    private static final Logger LOG = LoggerFactory.getLogger(PusherProducer.class);
-    private PusherEndpoint endpoint;
+public class PusherClientProducer extends DefaultProducer {
+    private static final Logger LOG = LoggerFactory.getLogger(PusherClientProducer.class);
+    private PusherClientEndpoint endpoint;
 
-    public PusherProducer(PusherEndpoint endpoint) {
+    public PusherClientProducer(PusherClientEndpoint endpoint) {
         super(endpoint);
         this.endpoint = endpoint;
     }

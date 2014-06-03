@@ -1,12 +1,12 @@
-camel-pusher
+camel-pusher-client
 ============
 
-Adds Pusher (http://pusher.com) messaging endpoints to Apache Camel.
+Adds Pusher (http://pusher.com) client endpoints to Apache Camel.
 
 Usage
 -----
 
-Define a Consumer or Producer using the URI `pusher://<app-key>/<channel>?events=<event1>,<event2>...`
+Define a Consumer or Producer using the URI `pusher-client://<app-key>/<channel>?events=<event1>,<event2>...`
 
 Where:
 * `<app-key>` is the application key which you can get from the app's API Access section in the Pusher dashboard
@@ -27,4 +27,4 @@ Currently, only public channels are supported. Private and presence channels req
 
 ### Producer
 
-The Producer endpoint hasn't been implemented yet. Any attempt to create a Producer using the `pusher://` scheme will result in an `UnsupportedOperationException`.
+The Producer endpoint hasn't been implemented yet. Any attempt to create a Producer using the `pusher-client://` scheme will result in an `UnsupportedOperationException`.
