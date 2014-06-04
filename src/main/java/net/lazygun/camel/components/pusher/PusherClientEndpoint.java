@@ -1,5 +1,22 @@
+/*
+ * Copyright 2014 Ewan Dawson
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package net.lazygun.camel.components.pusher;
 
+import com.pusher.client.channel.Channel;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
@@ -10,23 +27,21 @@ import org.apache.camel.impl.DefaultEndpoint;
  */
 public class PusherClientEndpoint extends DefaultEndpoint {
 
-    private String appKey = "";
-    private String channel = "";
+    private final Channel channel;
+    private final String appKey;
+    private final String channelId;
+
     private String[] events = new String[]{};
 
-    public PusherClientEndpoint() {
-    }
-
-    public PusherClientEndpoint(String uri, PusherClientComponent component) {
-        super(uri, component);
-    }
-
-    public PusherClientEndpoint(String endpointUri) {
-        super(endpointUri);
+    public PusherClientEndpoint(String uri, PusherClientComponent component, String appKey, Channel channel) {
+       super(uri, component);
+       this.appKey = appKey;
+       this.channel = channel;
+       this.channelId = component.getChannelId(appKey, channel.getName());
     }
 
     public Producer createProducer() throws Exception {
-        throw new UnsupportedOperationException("Triggering Pusher client events is not supported");
+        return new PusherClientProducer(this);
     }
 
     public Consumer createConsumer(Processor processor) throws Exception {
@@ -41,16 +56,8 @@ public class PusherClientEndpoint extends DefaultEndpoint {
         return appKey;
     }
 
-    public void setAppKey(String appKey) {
-        this.appKey = appKey;
-    }
-
-    public String getChannel() {
+    public Channel getChannel() {
         return channel;
-    }
-
-    public void setChannel(String channel) {
-        this.channel = channel;
     }
 
     public String[] getEvents() {
@@ -59,5 +66,18 @@ public class PusherClientEndpoint extends DefaultEndpoint {
 
     public void setEvents(String event) {
         this.events = event.split(",");
+    }
+
+    public String getChannelId() { return channelId; }
+
+    /**
+     * Returns the component that created this endpoint.
+     *
+     * @return the component that created this endpoint, or <tt>null</tt> if
+     * none set
+     */
+    @Override
+    public PusherClientComponent getComponent() {
+        return (PusherClientComponent) super.getComponent();
     }
 }

@@ -1,15 +1,26 @@
+/*
+ * Copyright 2014 Ewan Dawson
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package net.lazygun.camel.components.pusher;
 
-import com.pusher.client.Pusher;
-import com.pusher.client.channel.*;
-import com.pusher.client.connection.ConnectionEventListener;
-import com.pusher.client.connection.ConnectionState;
-import com.pusher.client.connection.ConnectionStateChange;
+import com.pusher.client.channel.Channel;
+import com.pusher.client.channel.SubscriptionEventListener;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.impl.DefaultConsumer;
-
-import java.util.Set;
 
 import static net.lazygun.camel.components.pusher.PusherClientComponent.*;
 
@@ -18,101 +29,41 @@ import static net.lazygun.camel.components.pusher.PusherClientComponent.*;
  */
 public class PusherClientConsumer extends DefaultConsumer {
 
-    private final String appKey;
+    private final SubscriptionEventListener listener;
 
     public PusherClientConsumer(final PusherClientEndpoint endpoint, Processor processor) {
         super(endpoint, processor);
-        this.appKey = endpoint.getAppKey();
-        final String[] events = endpoint.getEvents();
-
-        final Pusher pusher = new Pusher(endpoint.getAppKey());
-        pusher.connect(new ConnectionEventListener() {
+        String[] events = endpoint.getEvents();
+        Channel channel = endpoint.getChannel();
+        this.listener = new SubscriptionEventListener() {
             @Override
-            public void onConnectionStateChange(ConnectionStateChange change) {
-                log.info("Pusher app {} connection state change from {} to {}",
-                        new Object[]{endpoint.getAppKey(), change.getPreviousState(), change.getCurrentState()});
+            public void onEvent(String channelName, String eventName, String data) {
+                handleEvent(channelName, eventName, data);
             }
+        };
 
-            @Override
-            public void onError(String message, String code, Exception e) {
-                log.error("Pusher could not connect to app {}: {} ({})",
-                        new Object[]{endpoint.getAppKey(), message, code}, e);
-            }
-        }, ConnectionState.ALL);
+        String channelName = channel.getName();
 
-        log.debug("Subscribing to channel {}/{}, listening for events {}",
-                new Object[]{endpoint.getAppKey(), endpoint.getChannel(), endpoint.getEvents()});
+        for (String event: events) {
+            log.debug("Binding listener for '{}' events on channel {}", event, endpoint.getChannelId());
+            channel.bind(event, listener);
+        }
 
-        if (endpoint.getChannel().startsWith("private-")) {
-            pusher.subscribePrivate(endpoint.getChannel(), new PrivateChannelEventListener() {
-                @Override
-                public void onAuthenticationFailure(String message, Exception e) {
-                    getExceptionHandler().handleException(message, e);
-                }
+        handleEvent(channelName, PusherClientComponent.SUBSCRIBE_EVENT, "{}");
 
-                @Override
-                public void onSubscriptionSucceeded(String channelName) {
-                    log.info("Pusher app {} successfully subscribed to private channel {}", endpoint.getAppKey(), channelName);
-                    handleEvent(channelName, SUBSCRIBE_EVENT, null);
-                }
-
-                @Override
-                public void onEvent(String channelName, String eventName, String data) {
-                    handleEvent(channelName, eventName, data);
-                }
-            }, events);
-
-        } else if (endpoint.getChannel().startsWith("presence-")) {
-            pusher.subscribePresence(endpoint.getChannel(), new PresenceChannelEventListener() {
-                @Override
-                public void onUsersInformationReceived(String channelName, Set<User> users) {
-                    handleEvent(channelName, USER_INFORMATION_RECEIVED_EVENT, users);
-                }
-
-                @Override
-                public void userSubscribed(String channelName, User user) {
-                    handleEvent(channelName, MEMBER_ADDED_EVENT, user);
-                }
-
-                @Override
-                public void userUnsubscribed(String channelName, User user) {
-                    handleEvent(channelName, MEMBER_REMOVED_EVENT, user);
-                }
-
-                @Override
-                public void onAuthenticationFailure(String message, Exception e) {
-                    getExceptionHandler().handleException(message, e);
-                }
-
-                @Override
-                public void onSubscriptionSucceeded(String channelName) {
-                    log.info("Pusher app {} successfully subscribed to presence channel {}", endpoint.getAppKey(), channelName);
-                    handleEvent(channelName, SUBSCRIBE_EVENT, null);
-                }
-
-                @Override
-                public void onEvent(String channelName, String eventName, String data) {
-                    handleEvent(channelName, eventName, data);
-                }
-            }, events);
-
-        } else {
-            pusher.subscribe(endpoint.getChannel(), new ChannelEventListener() {
-                @Override
-                public void onSubscriptionSucceeded(String channelName) {
-                    log.info("Pusher app {} successfully subscribed to public channel {}", endpoint.getAppKey(), channelName);
-                    handleEvent(channelName, SUBSCRIBE_EVENT, null);
-                }
-
-                @Override
-                public void onEvent(String channelName, String eventName, String data) {
-                    handleEvent(channelName, eventName, data);
-                }
-            }, events);
+        if (channelName.startsWith("presence-")) {
+            // Register presence listeners for this channel too
+            endpoint.getComponent().registerForPresenceEvents(this);
         }
     }
 
-    private void handleEvent(String channelName, String eventName, Object data) {
+    @Override
+    public PusherClientEndpoint getEndpoint() {
+        return (PusherClientEndpoint) super.getEndpoint();
+    }
+
+    public void handleEvent(String channelName, String eventName, Object data) {
+        String appKey = getEndpoint().getAppKey();
         log.debug("Pusher app {} channel {} received event {} with data {}",
                 new Object[]{appKey, channelName, eventName, data});
 
@@ -130,6 +81,17 @@ public class PusherClientConsumer extends DefaultConsumer {
             if (exchange.getException() != null) {
                 getExceptionHandler().handleException("Error processing exchange", exchange, exchange.getException());
             }
+        }
+    }
+
+    @Override
+    protected void doStop() throws Exception {
+        super.doStop();
+        Channel channel = getEndpoint().getChannel();
+        String channelId = getEndpoint().getChannelId();
+        for (String event: getEndpoint().getEvents()) {
+            log.debug("Unbinding listener for {} events on channel {}", event, channelId);
+            channel.unbind(event, listener);
         }
     }
 }
