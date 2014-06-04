@@ -21,7 +21,7 @@
 
   <groupId>net.lazygun.camel.components</groupId>
   <artifactId>camel-pusher-client</artifactId>
-  <version>0.3.1-20140603</version>
+  <version>0.3.1-20140604</version>
 
   <name>Camel Pusher Client Component</name>
   <url>http://www.lazygun.net</url>
