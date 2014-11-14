@@ -76,10 +76,10 @@ public class PusherClientComponent extends DefaultComponent {
      * A presence channel endpoint will automatically receive events when a member is added or removed; no need to
      * register for these events explicitly.
      *
-     * @param uri
-     * @param remaining
-     * @param parameters
-     * @return
+     * @param uri the URI of the endpoint
+     * @param remaining the un-matched portion of the URI
+     * @param parameters a map of any query parameters on the endpoint URI
+     * @return a PusherClientEndpoint constructed from the given URI
      * @throws Exception
      */
     protected PusherClientEndpoint createEndpoint(String uri, String remaining, Map<String, Object> parameters) throws Exception {
@@ -96,10 +96,13 @@ public class PusherClientComponent extends DefaultComponent {
         PusherOptions options = new PusherOptions();
         Map<String, Authorizer> authorizers = getCamelContext().getRegistry().findByTypeWithName(Authorizer.class);
         if (authorizers.size() == 1) {
+            LOG.debug("Found 1 authorizer: {}", authorizers.keySet().iterator().next());
             options.setAuthorizer(authorizers.values().iterator().next());
         } else if (authorizers.size() > 1) {
+            LOG.debug("Found {} authorizers", authorizers.size());
             for (String name : authorizers.keySet()) {
                 if (name.contains(appKey)) {
+                    LOG.debug("Setting authorizer: " + name);
                     options.setAuthorizer(authorizers.get(name));
                     break;
                 }
@@ -114,6 +117,7 @@ public class PusherClientComponent extends DefaultComponent {
         Pusher pusher = apps.putIfAbsent(appKey, new Pusher(appKey, options));
 
         if (pusher == null) {
+            LOG.debug("Creating new Pusher instance for appKey: {}", appKey);
             pusher = apps.get(appKey);
 
             // Connect to the app
@@ -129,7 +133,7 @@ public class PusherClientComponent extends DefaultComponent {
 
                 @Override
                 public void onError(String message, String code, Exception e) {
-                    LOG.error("Pusher could not connect to app {}: {} ({})", new Object[]{appKey, message, code}, e);
+                    LOG.error("Pusher could not connect to app {}: {} ({})", new Object[]{appKey, message, code});
                     finished(e);
                 }
             }, ConnectionState.ALL);
@@ -149,7 +153,9 @@ public class PusherClientComponent extends DefaultComponent {
                 }
 
                 @Override
-                public void onError(String message, String code, Exception e) {}
+                public void onError(String message, String code, Exception e) {
+                    LOG.error("Message: {}, code: {}", message, code);
+                }
             });
         }
 
@@ -228,9 +234,9 @@ public class PusherClientComponent extends DefaultComponent {
      * A channel name alone cannot uniquely identify an channel across multiple apps, but when combined
      * with the app-key, a globally unique channel identifier can be created.
      *
-     * @param appKey
-     * @param channelName
-     * @return
+     * @param appKey the id of the pusher app
+     * @param channelName the name of the channel
+     * @return the id for the given channel, constructed from the appKey and channelName
      */
     public String getChannelId(String appKey, String channelName) {
         return appKey + "/" + channelName;
@@ -293,7 +299,7 @@ public class PusherClientComponent extends DefaultComponent {
             try {
                 consumer.handleEvent(channelName, eventName, data);
             } catch (Exception e) {
-                LOG.error("Error dispatching {} event to consumer {}", new Object[]{eventName, consumer}, e);
+                LOG.error("Error dispatching {} event to consumer {}", new Object[]{eventName, consumer});
             }
         }
     }
@@ -304,24 +310,28 @@ public class PusherClientComponent extends DefaultComponent {
         return new PresenceChannelEventListener() {
             @Override
             public void onUsersInformationReceived(String channelName, Set<User> users) {
+                LOG.debug("Received user information from channel {}", channelName);
                 presenceChannelUsers.put(channelId, users);
                 dispatchPresenceEvent(channelId, channelName, SUBSCRIPTION_SUCCEEDED_EVENT, users);
             }
 
             @Override
             public void userSubscribed(String channelName, User user) {
+                LOG.debug("User {} has subscribed to channel {}", user, channelName);
                 addToPresenceChannelUsers(channelId, user);
                 dispatchPresenceEvent(channelId, channelName, MEMBER_ADDED_EVENT, user);
             }
 
             @Override
             public void userUnsubscribed(String channelName, User user) {
+                LOG.debug("User {} has unsubscribed from channel{}", user, channelName);
                 removeFromPresenceChannelUsers(channelId, user);
                 dispatchPresenceEvent(channelId, channelName, MEMBER_REMOVED_EVENT, user);
             }
 
             @Override
             public void onAuthenticationFailure(String message, Exception e) {
+                LOG.error("Authentication failure: {}", message);
                 finished(e);
             }
 
@@ -332,7 +342,9 @@ public class PusherClientComponent extends DefaultComponent {
             }
 
             @Override
-            public void onEvent(String channelName, String eventName, String data) {}
+            public void onEvent(String channelName, String eventName, String data) {
+                LOG.info("Received event '{}' from channel '{}': {}", new Object[]{eventName, channelName, data});
+            }
         };
     }
 
@@ -342,6 +354,7 @@ public class PusherClientComponent extends DefaultComponent {
      */
     @Override
     protected void doStop() throws Exception {
+        LOG.info("Stopping {}", getClass().getSimpleName());
         super.doStop();
         // Disconnect from any currently connected apps
         for (Pusher pusher : apps.values()) {
@@ -352,6 +365,4 @@ public class PusherClientComponent extends DefaultComponent {
             }
         }
     }
-
-
 }

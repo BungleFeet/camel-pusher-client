@@ -35,6 +35,10 @@ public class PusherClientConsumer extends DefaultConsumer {
         super(endpoint, processor);
         String[] events = endpoint.getEvents();
         Channel channel = endpoint.getChannel();
+
+        log.debug("{} listening on channel {} for events named [{}]",
+                  new Object[]{getClass().getSimpleName(), channel, String.join(",", events)});
+
         this.listener = new SubscriptionEventListener() {
             @Override
             public void onEvent(String channelName, String eventName, String data) {
@@ -64,7 +68,7 @@ public class PusherClientConsumer extends DefaultConsumer {
 
     public void handleEvent(String channelName, String eventName, Object data) {
         String appKey = getEndpoint().getAppKey();
-        log.debug("Pusher app {} channel {} received event {} with data {}",
+        log.debug("Pusher app '{}' channel '{}' received event '{}' with data {}",
                 new Object[]{appKey, channelName, eventName, data});
 
         Exchange exchange = getEndpoint().createExchange();
