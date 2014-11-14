@@ -21,25 +21,29 @@ import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 import static net.lazygun.camel.components.pusher.PusherClientComponent.SCHEME;
 
+/**
+ * Test the PusherClientComponent against a live channel. When running this test,
+ * you must set the following system properties:
+ * <ul>
+ *     <li>{@code test.app} - the key of the pusher app to connect to</li>
+ *     <li>{@code test.channel} - the name of the channel to subscribe to</li>
+ *     <li>{@code test.event} - the name of the event to listen for</li>
+ * </ul>
+ * The Pusher app which you are testing against must produce an event of the set
+ * name on the set channel at least once every 10 seconds for this test to pass.
+ */
 public class PusherClientComponentTest extends CamelTestSupport {
 
-    public static final String TEST_APP = "22364f2f790269bec0a0"; // see http://test.pusher.com
-    public static final String TEST_CHANNEL = "channel";
-    public static final String TEST_EVENT_NAME = "event";
-    public static final String TEST_TRIGGER_URL = "http://test.pusher.com/hello";
+    public static final String TEST_APP = System.getProperty("test.app");
+    public static final String TEST_CHANNEL = System.getProperty("test.channel");
+    public static final String TEST_EVENT_NAME = System.getProperty("test.event");
 
     @Test
     public void testPusher() throws Exception {
         MockEndpoint mock = getMockEndpoint("mock:result");
         mock.expectedMinimumMessageCount(1);
-
-        triggerTestMessage();
         assertMockEndpointsSatisfied();
     }
 
@@ -48,15 +52,8 @@ public class PusherClientComponentTest extends CamelTestSupport {
         final String uri = SCHEME + "://" + TEST_APP + "/" + TEST_CHANNEL + "?events=" + TEST_EVENT_NAME;
         return new RouteBuilder() {
             public void configure() {
-                from(uri)
-                  .to("mock:result");
+                from(uri).to("mock:result");
             }
         };
-    }
-
-    private void triggerTestMessage() throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(TEST_TRIGGER_URL).openConnection();
-        connection.setRequestMethod("POST");
-        connection.getContent();
     }
 }
